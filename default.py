@@ -20,7 +20,7 @@ def test_download_speed(dialog):
     # Open request
     response = urllib2.urlopen(request)
     file_size = int(response.headers['Content-Length'])  # File size in bytes
-    block_size = 8192  # Read in 8KB chunks
+    block_size = 8192  # Read in 1KB chunks
     downloaded_size = 0
     start_time = time.time()
 
@@ -50,21 +50,56 @@ def test_download_speed(dialog):
 
     return download_speed_mbps
 
-# Function to test latency (ping)
 def test_ping(dialog):
-    dialog.update(0, "Testing Ping...")
+    dialog.update(0, "Testing Ping...", "Please wait while we calculate the ping.")
+
     target = "8.8.8.8"  # Google DNS
     port = 53  # Use port 53 for DNS
+    timeout = 2  # Timeout for each ping
+    ping_times = []  # Store individual ping times
     start_time = time.time()
 
-    try:
-        # Test connection
-        socket.create_connection((target, port), timeout=2)
-        end_time = time.time()
-        ping = (end_time - start_time) * 1000  # Convert to ms
-        return ping
-    except socket.error:
-        return None
+    while time.time() - start_time < 10:  # Run for 5 seconds
+        try:
+            # Start the timer for this ping
+            ping_start = time.time()
+
+            # Test connection
+            socket.create_connection((target, port), timeout=timeout)
+
+            # Calculate the ping time
+            ping_end = time.time()
+            ping = (ping_end - ping_start) * 1000  # Convert to ms
+            ping_times.append(ping)
+
+            # Update dialog with current status
+            elapsed = time.time() - start_time
+            ping_number = int(elapsed) + 1  # Convert elapsed to an integer and use it as the Ping #
+            dialog.update(
+                int((elapsed / 10) * 100),  # Progress percentage
+                "Testing Ping...",
+                "Current Ping: {:.2f} ms".format(ping),
+                "Ping #: {} / 10".format(ping_number)
+            )
+
+        except socket.error:
+            # Log failure as None (optional: add a placeholder value like 0)
+            ping_times.append(None)
+
+        time.sleep(1)  # Wait 1 second between pings
+
+    # Calculate the average ping time (ignoring failed pings)
+    successful_pings = [p for p in ping_times if p is not None]
+    average_ping = sum(successful_pings) / len(successful_pings) if successful_pings else None
+
+    # Update dialog with the final result
+    if average_ping is not None:
+        dialog.update(100, "Ping Test Complete", "Average Ping: {:.2f} ms".format(average_ping))
+    else:
+        dialog.update(100, "Ping Test Failed", "No successful pings.")
+
+    time.sleep(1)  # Brief pause to allow user to see the update
+    return average_ping
 
 # Main function to run the speed test
 def run_speed_test():
