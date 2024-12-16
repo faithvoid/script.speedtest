@@ -36,7 +36,7 @@ def test_download_speed(dialog):
             speed_kbps = (downloaded_size / elapsed_time) / 1024  # Convert to Kbps
             progress = int((downloaded_size / float(file_size)) * 100)
             dialog.update(progress, 
-                          "Testing Download Speed...",
+                          "Testing Speed...",
                           "Speed: {:.2f} Kbps".format(speed_kbps),
                           "Progress: {}%".format(progress))
     
@@ -51,7 +51,7 @@ def test_download_speed(dialog):
     return download_speed_mbps
 
 def test_ping(dialog):
-    dialog.update(0, "Testing Ping...", "Please wait while we calculate the ping.")
+    dialog.update(0, "Ping Test", "Please wait, calculating ping...")
 
     target = "8.8.8.8"  # Google DNS
     port = 53  # Use port 53 for DNS
@@ -59,7 +59,7 @@ def test_ping(dialog):
     ping_times = []  # Store individual ping times
     start_time = time.time()
 
-    while time.time() - start_time < 10:  # Run for 5 seconds
+    while time.time() - start_time < 30:  # Run for 3 seconds
         try:
             # Start the timer for this ping
             ping_start = time.time()
@@ -76,10 +76,10 @@ def test_ping(dialog):
             elapsed = time.time() - start_time
             ping_number = int(elapsed) + 1  # Convert elapsed to an integer and use it as the Ping #
             dialog.update(
-                int((elapsed / 10) * 100),  # Progress percentage
+                int((elapsed / 30) * 100),  # Progress percentage
                 "Testing Ping...",
                 "Current Ping: {:.2f} ms".format(ping),
-                "Ping #: {} / 10".format(ping_number)
+                "Ping #: {} / 30".format(ping_number)
             )
 
         except socket.error:
@@ -104,14 +104,14 @@ def test_ping(dialog):
 # Main function to run the speed test
 def run_speed_test():
     dialog = xbmcgui.DialogProgress()
-    dialog.create("Speed Test", "Starting the speed test... Please wait.")
+    dialog.create("Speed Test", "Starting the speed test, just a moment...")
 
     try:
         # Test download speed
         download_speed = test_download_speed(dialog)
         if download_speed is None:
             dialog.close()
-            xbmcgui.Dialog().ok("Speed Test Canceled", "The speed test was canceled.")
+            xbmcgui.Dialog().ok("Speed Test Cancelled", "The speed test was cancelled.")
             return
 
         # Test ping
