@@ -20,7 +20,7 @@ def test_download_speed(dialog):
     # Open request
     response = urllib2.urlopen(request)
     file_size = int(response.headers['Content-Length'])  # File size in bytes
-    block_size = 4096 * 1024  # Read in 4MB chunks
+    block_size = 4096 * 1024  # Read in 4MB chunks - Reduce this to "2096 (2MB)" if you experience memory issues.
     downloaded_size = 0
     start_time = time.time()
 
