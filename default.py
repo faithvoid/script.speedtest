@@ -5,6 +5,8 @@ import socket
 import xbmc
 import xbmcgui
 
+from contextlib import closing
+
 # Define custom headers
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
@@ -49,6 +51,68 @@ def test_download_speed(dialog):
     download_speed_mbps = (file_size * 8) / (total_time * 1024 * 1024)  # Convert to Mbps
 
     return download_speed_mbps
+
+def download_file_alt(dialog, local_path=None, timeout=20, chunk_size=8192, progress_every=128):
+    """
+    Download a file from the provided URL, and saves it to the local_path.
+
+    Args:
+        local_path: Local path to save the file to. Only full paths allowed. None if the file is not to be saved.
+        timeout: Time to wait for the connection to succeed, in seconds
+        chunk_size: Size of the chunks to download at a time, in bytes
+        progress_every: Every how many downloaded chunks to yield progress
+    Returns:
+        Yields progress from 0 to 100 as an int, and human-readable download
+        speed as a string
+    """
+
+    dest_path = local_path if local_path is not None else "Z:\\speed_test.tmp"
+
+    url = "https://github.com/BitDoctor/speed-test-file/raw/refs/heads/master/10mb.txt"
+    request = urllib2.Request(url, headers=HEADERS)
+
+    repetitions = 0
+    start_time = time.time()
+
+    with closing(urllib2.urlopen(request, timeout=timeout)) as response, open(dest_path, 'wb') as output_file:
+        total_size = float(response.headers['Content-Length'])
+        downloaded = 0
+
+        while True:
+            chunk = response.read(chunk_size)
+            if not chunk:
+                break
+
+            # Only write to the file if we are testing this case
+            if local_path is not None:
+                output_file.write(chunk)
+
+            downloaded += len(chunk)
+            repetitions += 1
+
+            if repetitions >= progress_every:
+                repetitions = 0
+                # Calculate speed
+                elapsed_time = time.time() - start_time
+                speed = downloaded / (elapsed_time * 1024)
+
+                if speed >= 1024:
+                    speed = "{:.2f} MB/s".format(speed / 1024)
+                else:
+                    speed = "{:.2f} KB/s".format(speed)
+
+                progress = int((downloaded / total_size) * 100)
+
+                dialog.update(progress,
+                              "Testing Speed...",
+                              "Speed: {}".format(speed),
+                              "Progress: {}%".format(progress))
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        download_speed_mbps = (int(total_size) * 8) / (total_time * 1024 * 1024)
+
+        return download_speed_mbps
 
 def test_ping(dialog):
     dialog.update(0, "Ping Test", "Please wait, calculating ping...")
@@ -114,11 +178,14 @@ def run_speed_test():
             xbmcgui.Dialog().ok("Speed Test Cancelled", "The speed test was cancelled.")
             return
 
+        # Test alt download speed
+        alt_download_speed = download_file_alt(dialog)
+
         # Test ping
         ping = test_ping(dialog)
 
         # Format results
-        download_speed_text = "Download Speed: {:.2f} Mbps".format(download_speed)
+        download_speed_text = "D1: {:.2f} Mbps | D2: {:.2f}".format(download_speed, alt_download_speed)
         ping_text = "Ping: {:.2f} ms".format(ping if ping is not None else 0)
 
         # Show final results
