@@ -15,7 +15,7 @@ HEADERS = {
 # Function to test download speed
 def test_download_speed(dialog):
     url = "https://github.com/BitDoctor/speed-test-file/raw/refs/heads/master/10mb.txt"  # Test file
-    request = urllib2.Request(url, headers=HEADERS)
+    request = urllib2.Request(url, headers=HEADERS, timeout=10)
     
     # Open request
     response = urllib2.urlopen(request)
